@@ -1,4 +1,5 @@
 import pygame
+from os.path import join
 
 
 # constants
@@ -9,4 +10,4 @@ BALL_SIZE                       = PAD_WIDTH
 BALL_SPEED, PAD_SPEED           = 300, 300
 RAY_LENGTH, RAY_SHRINK_SPEED    = 20, 60
 BG_COLOR, FG_COLOR, TEXT_COLOR  = "orange", "blue", "black"
-TEXT_SIZE, FONT_PATH            = WINDOW_HEIGHT//15, "game/utils/Pokemon_GB.ttf"
+TEXT_SIZE, FONT_PATH            = WINDOW_HEIGHT//15, join('game','utils','Pokemon_GB.ttf')

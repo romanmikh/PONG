@@ -5,8 +5,33 @@ def make_shape(topleft, width, height):
     surf = pygame.Surface((width, height), pygame.SRCALPHA)
     rect = pygame.Rect(0, 0, width, height)
     pygame.draw.rect(surf, FG_COLOR, rect, border_radius=12)        
-    pygame.draw.rect(surf, "black", rect, width=2, border_radius=12)
+    pygame.draw.rect(surf, TEXT_COLOR, rect, width=2, border_radius=12)
     return surf, surf.get_frect(topleft=topleft)
+
+
+def display_text(display_surface, text, pos, color=TEXT_COLOR, size=TEXT_SIZE):
+    font = pygame.font.Font(FONT_PATH, size)
+    text_surf = font.render(text, False, color)
+    text_rect = text_surf.get_frect(center=pos)
+    display_surface.blit(text_surf, text_rect)
+
+
+def display_score(display_surface, scores, pos=(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 10)):
+    text = f"{scores['player1']} : {scores['player2']}"
+    display_text(display_surface, text, pos, color=TEXT_COLOR, size=TEXT_SIZE)
+
+
+def display_winner(display_surface, winner, pos=(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 10)):
+    text = f"{winner} WINS!"
+    display_text(display_surface, text, pos, color=TEXT_COLOR, size=TEXT_SIZE)
+
+
+def display_instructions(display_surface, pos=(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 10)):
+    display_text(display_surface, "PRESS SPACE", pos, color=TEXT_COLOR, size=TEXT_SIZE)
+    display_text(display_surface, "W", (PAD_WIDTH + 20, WINDOW_HEIGHT // 2 - PAD_HEIGHT // 2 + 15), color=TEXT_COLOR, size=TEXT_SIZE // 2)
+    display_text(display_surface, "S", (PAD_WIDTH + 20, WINDOW_HEIGHT // 2 + PAD_HEIGHT // 2 - 10), color=TEXT_COLOR, size=TEXT_SIZE // 2)
+    display_text(display_surface, "UP", (WINDOW_WIDTH - PAD_WIDTH - 25, WINDOW_HEIGHT // 2 - PAD_HEIGHT // 2 + 15), color=TEXT_COLOR, size=TEXT_SIZE // 2)
+    display_text(display_surface, "DN", (WINDOW_WIDTH - PAD_WIDTH - 25, WINDOW_HEIGHT // 2 + PAD_HEIGHT // 2 - 10), color=TEXT_COLOR, size=TEXT_SIZE // 2)
 
 
 class Ball(pygame.sprite.Sprite):
@@ -101,13 +126,13 @@ class Text(pygame.sprite.Sprite):
         self.scores     = scores
         self.ball       = ball
         self.font  = pygame.font.Font(FONT_PATH, TEXT_SIZE)
-        self.image = self.font.render("PRESS SPACE", True, self.color)
+        self.image = self.font.render("PRESS SPACE", False, self.color)
         self.rect  = self.image.get_rect(center=(self.x, self.y))
 
     def update(self, *_):
         if self.ball.game_active_ever:
             text = f"{self.scores['player1']}:{self.scores['player2']}"
-            self.image = self.font.render(text, True, self.color)
+            self.image = self.font.render(text, False, self.color)
             self.rect  = self.image.get_rect(center=(WINDOW_WIDTH // 2, self.y))
 
 
@@ -137,7 +162,10 @@ class Ray(pygame.sprite.Sprite):
 
     def update(self, dt):
         self.length -= RAY_SHRINK_SPEED * dt
-        self._update_image()
+        if self.length <= 0:
+            self.kill()
+        else:
+            self._update_image()
 
 
 def main():
@@ -150,14 +178,14 @@ def main():
     scores = {"player1": 0, "player2": 0}
 
     # make pads & ball & text
-    all_sprites = pygame.sprite.Group()
     pad_start_y = WINDOW_HEIGHT//2 - PAD_HEIGHT//2
     padl_start_x, padr_start_x = 0, WINDOW_WIDTH - PAD_WIDTH
     
-    pad_left  = Pad(padl_start_x, pad_start_y, "player1", all_sprites)
-    pad_right = Pad(padr_start_x, pad_start_y, "player2", all_sprites)
-    ball      = Ball(all_sprites, (pad_left, pad_right), scores)
-    Text((WINDOW_WIDTH // 2, WINDOW_HEIGHT//10), TEXT_COLOR, scores, ball, all_sprites)
+    all_sprites = pygame.sprite.Group()
+    pad_left    = Pad(padl_start_x, pad_start_y, "player1", all_sprites)
+    pad_right   = Pad(padr_start_x, pad_start_y, "player2", all_sprites)
+    ball        = Ball(all_sprites, (pad_left, pad_right), scores)
+    # Text((WINDOW_WIDTH // 2, WINDOW_HEIGHT//10), TEXT_COLOR, scores, ball, all_sprites)
 
     running = True
     while running:
@@ -172,6 +200,13 @@ def main():
         display_surface.fill(BG_COLOR)
         all_sprites.update(delta_time)
         all_sprites.draw(display_surface)
+        if not ball.game_active_ever:
+            display_instructions(display_surface)
+        elif scores["player1"] >= 5 or scores["player2"] >= 5:
+            winner = "Player 1" if scores["player1"] > scores["player2"] else "Player 2"
+            display_winner(display_surface, winner)
+        else:
+            display_score(display_surface, scores)
         
         pygame.display.update()
 
