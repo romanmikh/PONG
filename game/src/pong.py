@@ -22,10 +22,16 @@ class Ball(pygame.sprite.Sprite):
         self.scores = scores
         self.collisions = 0
 
-    def pad_hit(self, pad_rect, ball_rect):
+    def _pad_hit(self, pad_rect, ball_rect):
         self.collisions += 1
         return pad_rect.top <= ball_rect.centery <= pad_rect.bottom
     
+    def _spawn_rays(self, normal):
+        for angle in (75, 25, -25, -75):
+            Ray(self.rect.center,
+                normal.rotate(angle),
+                self.groups())
+            
     def reset_position(self):
         self.rect.midleft = (PAD_WIDTH, WINDOW_HEIGHT // 2)
         self.direction = pygame.math.Vector2(1, -1)
@@ -33,8 +39,8 @@ class Ball(pygame.sprite.Sprite):
         self.pad_right.reset_position()
         self.game_active = False
         self.collisions = 0
-
-    def update(self, delta_time):
+        
+    def update(self, dt):
         keys = pygame.key.get_pressed()
         if keys[pygame.K_SPACE]:
             self.game_active = True
@@ -45,20 +51,22 @@ class Ball(pygame.sprite.Sprite):
                 self.direction.y *= -1
 
             if self.rect.left <= PAD_WIDTH:
-                if self.pad_hit(self.pad_left.rect, self.rect):
+                if self._pad_hit(self.pad_left.rect, self.rect):
                     self.direction.x = abs(self.direction.x)
+                    self._spawn_rays(pygame.math.Vector2(1, 0))
                 else:
                     self.scores["player2"] += 1
                     self.reset_position()
 
             elif self.rect.right >= WINDOW_WIDTH - PAD_WIDTH:
-                if self.pad_hit(self.pad_right.rect, self.rect):
+                if self._pad_hit(self.pad_right.rect, self.rect):
                     self.direction.x = -abs(self.direction.x)
+                    self._spawn_rays(pygame.math.Vector2(-1, 0))
                 else:
                     self.scores["player1"] += 1
                     self.reset_position()
 
-            self.rect.center += self.direction * BALL_SPEED * delta_time * (1 + self.collisions / 10)
+            self.rect.center += self.direction * BALL_SPEED * dt * (1 + self.collisions / 10)
 
 
 class Pad(pygame.sprite.Sprite):
@@ -73,18 +81,19 @@ class Pad(pygame.sprite.Sprite):
     def reset_position(self):
         self.rect.topleft = (self.start_x, self.start_y)
 
-    def update(self, delta_time):
+    def update(self, dt):
         
         keys = pygame.key.get_pressed()
         if self.player == "player1":
             self.direction = -int(keys[pygame.K_w])  + int(keys[pygame.K_s])
         else:
             self.direction = -int(keys[pygame.K_UP]) + int(keys[pygame.K_DOWN])
-        self.rect.y += self.direction * PAD_SPEED * delta_time
+        self.rect.y += self.direction * PAD_SPEED * dt
         self.rect.y = max(0, min(WINDOW_HEIGHT - PAD_HEIGHT, self.rect.y))
 
 
 class Text(pygame.sprite.Sprite):
+    """Text prompt & score display"""
     def __init__(self, pos, color, scores, ball, groups):
         super().__init__(groups)
         self.x, self.y  = pos
@@ -100,6 +109,35 @@ class Text(pygame.sprite.Sprite):
             text = f"{self.scores['player1']}:{self.scores['player2']}"
             self.image = self.font.render(text, True, self.color)
             self.rect  = self.image.get_rect(center=(WINDOW_WIDTH // 2, self.y))
+
+
+class Ray(pygame.sprite.Sprite):
+    """A blue line animation that moves away from the ball cntre until it vanishes"""
+    def __init__(self, pos, normal, groups):
+        super().__init__(groups)
+        self.normal   = normal.normalize()
+        self.radius   = BALL_SIZE
+        self.length   = RAY_LENGTH
+        size          = (self.radius + self.length) * 2
+        self.image    = pygame.Surface((size, size), pygame.SRCALPHA)
+        self.rect     = self.image.get_rect(center=pos)
+        self._update_image()
+
+    def _update_image(self):
+        self.image.fill((0, 0, 0, 0))
+        remain = max(0, self.length)
+        if remain == 0:
+            return
+        cx, cy = self.image.get_width() // 2, self.image.get_height() // 2
+        start  = (cx + self.normal.x * (self.radius + (RAY_LENGTH - self.length)),
+                  cy + self.normal.y * (self.radius + (RAY_LENGTH - self.length)))
+        end    = (cx + self.normal.x * (self.radius + RAY_LENGTH),
+                  cy + self.normal.y * (self.radius + RAY_LENGTH))
+        pygame.draw.line(self.image, FG_COLOR, start, end, 2)
+
+    def update(self, dt):
+        self.length -= RAY_SHRINK_SPEED * dt
+        self._update_image()
 
 
 def main():
