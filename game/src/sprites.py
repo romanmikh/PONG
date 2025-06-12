@@ -205,10 +205,8 @@ class Ray(pygame.sprite.Sprite):
         self._update_image()
 
     def _update_image(self):
+        # wipe the image and draw a line
         self.image.fill((0, 0, 0, 0))
-        remain = max(0, self.length)
-        if remain == 0:
-            return
         cx, cy = self.image.get_width() // 2, self.image.get_height() // 2
         start  = (cx + self.normal.x * (self.radius + (RAY_LENGTH - self.length)),
                   cy + self.normal.y * (self.radius + (RAY_LENGTH - self.length)))

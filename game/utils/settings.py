@@ -14,9 +14,9 @@ BALL_SIZE                       = PAD_WIDTH
 BG_COLOR, FG_COLOR, TEXT_COLOR  = "orange", "blue", "black"
 FONT_PATH                       = join('game','utils','Pokemon_GB.ttf')
 CLICK_SOUND_PATH                = join('game','utils','3b1b_clack.wav')
-MISS_SOUND_PATH                 = join('game','utils','fart.wav')
+MISS_SOUND_PATH                 = join('game','utils','fart.wav')       # we have to use the fart sound
 WIN_SOUND_PATH                  = join('game','utils','win.wav')
-
+SCORE_FILE_PATH                 = join('game','data','scores.json')
 
 POS = {
     'padl_start': (PAD_WIDTH // 2, WINDOW_HEIGHT // 2),

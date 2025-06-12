@@ -1,6 +1,7 @@
 from ..utils.settings import *
 from .sprites import *
 import time
+import json
 
 # helper functions
 def display_text(display_surface, text, pos, color=TEXT_COLOR, size=TEXT_SIZE):
@@ -38,11 +39,17 @@ class Game:
         self.clock = pygame.time.Clock()
         self.display_surface = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
         self.win_sound = pygame.mixer.Sound(WIN_SOUND_PATH)
-        self.scores = {"player1": 0, "player2": 0}
         self.running = True
         self.ball = None
 
-        # make pads & ball
+        # load scores
+        with open(SCORE_FILE_PATH, 'r') as f:
+            try:
+                self.scores = json.load(f)
+            except json.JSONDecodeError:
+                self.scores = {"player1": 0, "player2": 0}
+
+        # make pad & ball sprites
         self.all_sprites = pygame.sprite.Group()
         pad_left  = PlayerPad(POS['padl_start'], "player1", None, self.all_sprites)
         pad_right = PlayerPad(POS['padr_start'], "player2", None, self.all_sprites)
@@ -51,6 +58,7 @@ class Game:
         # pad_right = SmartOpponentPad(POS['padr_start'], "SmartBot", None, self.all_sprites)
         self.ball = Ball(POS['ball_start'], (pad_left, pad_right), self.scores, self.all_sprites)
         pad_left.ball = pad_right.ball = self.ball
+
 
     def _check_win(self):
         return self.scores["player1"] >= MAX_SCORE or self.scores["player2"] >= MAX_SCORE
@@ -71,6 +79,8 @@ class Game:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.running = False
+                    with open(SCORE_FILE_PATH, 'w') as f:
+                        json.dump(self.scores, f)
                             
             # draw the screen
             self.display_surface.fill(BG_COLOR)
