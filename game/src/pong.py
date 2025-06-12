@@ -1,11 +1,13 @@
 from ..utils.settings import *
+import time
 
 # helper functions
 def make_shape(topleft, width, height):
+    border_radius = WINDOW_WIDTH // 10
     surf = pygame.Surface((width, height), pygame.SRCALPHA)
     rect = pygame.Rect(0, 0, width, height)
-    pygame.draw.rect(surf, FG_COLOR, rect, border_radius=12)        
-    pygame.draw.rect(surf, TEXT_COLOR, rect, width=2, border_radius=12)
+    pygame.draw.rect(surf, FG_COLOR, rect, border_radius=border_radius)        
+    pygame.draw.rect(surf, TEXT_COLOR, rect, width=2, border_radius=border_radius)
     return surf, surf.get_frect(topleft=topleft)
 
 
@@ -27,11 +29,14 @@ def display_winner(display_surface, winner, pos=(WINDOW_WIDTH // 2, WINDOW_HEIGH
 
 
 def display_instructions(display_surface, pos=(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 10)):
+    offset_x = WINDOW_WIDTH // 50
+    offset_y = WINDOW_HEIGHT // 40
     display_text(display_surface, "PRESS SPACE", pos, color=TEXT_COLOR, size=TEXT_SIZE)
-    display_text(display_surface, "W", (PAD_WIDTH + 20, WINDOW_HEIGHT // 2 - PAD_HEIGHT // 2 + 15), color=TEXT_COLOR, size=TEXT_SIZE // 2)
-    display_text(display_surface, "S", (PAD_WIDTH + 20, WINDOW_HEIGHT // 2 + PAD_HEIGHT // 2 - 10), color=TEXT_COLOR, size=TEXT_SIZE // 2)
-    display_text(display_surface, "UP", (WINDOW_WIDTH - PAD_WIDTH - 25, WINDOW_HEIGHT // 2 - PAD_HEIGHT // 2 + 15), color=TEXT_COLOR, size=TEXT_SIZE // 2)
-    display_text(display_surface, "DN", (WINDOW_WIDTH - PAD_WIDTH - 25, WINDOW_HEIGHT // 2 + PAD_HEIGHT // 2 - 10), color=TEXT_COLOR, size=TEXT_SIZE // 2)
+    display_text(display_surface, "W", (PAD_WIDTH + offset_x, WINDOW_HEIGHT // 2 - PAD_HEIGHT // 2 + offset_y), color=TEXT_COLOR, size=TEXT_SIZE // 2)
+    display_text(display_surface, "S", (PAD_WIDTH + offset_x, WINDOW_HEIGHT // 2 + PAD_HEIGHT // 2 - offset_y), color=TEXT_COLOR, size=TEXT_SIZE // 2)
+    display_text(display_surface, "UP", (WINDOW_WIDTH - PAD_WIDTH - offset_x, WINDOW_HEIGHT // 2 - PAD_HEIGHT // 2 + offset_y), color=TEXT_COLOR, size=TEXT_SIZE // 2)
+    display_text(display_surface, "DN", (WINDOW_WIDTH - PAD_WIDTH - offset_x, WINDOW_HEIGHT // 2 + PAD_HEIGHT // 2 - offset_y), color=TEXT_COLOR, size=TEXT_SIZE // 2)
+
 
 
 class Ball(pygame.sprite.Sprite):
@@ -40,6 +45,9 @@ class Ball(pygame.sprite.Sprite):
         start_x = PAD_WIDTH
         start_y = WINDOW_HEIGHT//2 - PAD_HEIGHT//2 + PAD_HEIGHT//2 - BALL_SIZE//2
         self.image, self.rect = make_shape((start_x, start_y), BALL_SIZE, BALL_SIZE)
+        self.pad_hit_sound = pygame.mixer.Sound(CLICK_SOUND_PATH)
+        self.miss_sound = pygame.mixer.Sound(MISS_SOUND_PATH)
+        self.miss_sound.set_volume(0.5)
         self.direction = pygame.math.Vector2(1, -1)
         self.pad_left, self.pad_right = pads
         self.game_active_ever = False
@@ -78,16 +86,20 @@ class Ball(pygame.sprite.Sprite):
             if self.rect.left <= PAD_WIDTH:
                 if self._pad_hit(self.pad_left.rect, self.rect):
                     self.direction.x = abs(self.direction.x)
+                    self.pad_hit_sound.play()
                     self._spawn_rays(pygame.math.Vector2(1, 0))
                 else:
+                    self.miss_sound.play()
                     self.scores["player2"] += 1
                     self.reset_position()
 
             elif self.rect.right >= WINDOW_WIDTH - PAD_WIDTH:
                 if self._pad_hit(self.pad_right.rect, self.rect):
                     self.direction.x = -abs(self.direction.x)
+                    self.pad_hit_sound.play()
                     self._spawn_rays(pygame.math.Vector2(-1, 0))
                 else:
+                    self.miss_sound.play()
                     self.scores["player1"] += 1
                     self.reset_position()
 
@@ -115,25 +127,6 @@ class Pad(pygame.sprite.Sprite):
             self.direction = -int(keys[pygame.K_UP]) + int(keys[pygame.K_DOWN])
         self.rect.y += self.direction * PAD_SPEED * dt
         self.rect.y = max(0, min(WINDOW_HEIGHT - PAD_HEIGHT, self.rect.y))
-
-
-class Text(pygame.sprite.Sprite):
-    """Text prompt & score display"""
-    def __init__(self, pos, color, scores, ball, groups):
-        super().__init__(groups)
-        self.x, self.y  = pos
-        self.color      = color
-        self.scores     = scores
-        self.ball       = ball
-        self.font  = pygame.font.Font(FONT_PATH, TEXT_SIZE)
-        self.image = self.font.render("PRESS SPACE", False, self.color)
-        self.rect  = self.image.get_rect(center=(self.x, self.y))
-
-    def update(self, *_):
-        if self.ball.game_active_ever:
-            text = f"{self.scores['player1']}:{self.scores['player2']}"
-            self.image = self.font.render(text, False, self.color)
-            self.rect  = self.image.get_rect(center=(WINDOW_WIDTH // 2, self.y))
 
 
 class Ray(pygame.sprite.Sprite):
@@ -176,6 +169,7 @@ def main():
     clock = pygame.time.Clock()
     display_surface = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
     scores = {"player1": 0, "player2": 0}
+    win_sound = pygame.mixer.Sound(WIN_SOUND_PATH)
 
     # make pads & ball & text
     pad_start_y = WINDOW_HEIGHT//2 - PAD_HEIGHT//2
@@ -185,7 +179,6 @@ def main():
     pad_left    = Pad(padl_start_x, pad_start_y, "player1", all_sprites)
     pad_right   = Pad(padr_start_x, pad_start_y, "player2", all_sprites)
     ball        = Ball(all_sprites, (pad_left, pad_right), scores)
-    # Text((WINDOW_WIDTH // 2, WINDOW_HEIGHT//10), TEXT_COLOR, scores, ball, all_sprites)
 
     running = True
     while running:
@@ -205,6 +198,10 @@ def main():
         elif scores["player1"] >= 5 or scores["player2"] >= 5:
             winner = "Player 1" if scores["player1"] > scores["player2"] else "Player 2"
             display_winner(display_surface, winner)
+            win_sound.play()
+            pygame.display.update()
+            time.sleep(5)
+            running = False
         else:
             display_score(display_surface, scores)
         
