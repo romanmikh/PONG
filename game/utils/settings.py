@@ -6,7 +6,7 @@ from os.path import join
 WINDOW_WIDTH, WINDOW_HEIGHT     = 1000, 600
 
 BALL_SPEED, PAD_SPEED           = 300, 300
-MAX_SCORE                       = 2
+MAX_SCORE                       = 5
 PAD_WIDTH, PAD_HEIGHT           = WINDOW_WIDTH//40, WINDOW_HEIGHT//4
 RAY_LENGTH, RAY_SHRINK_SPEED    = WINDOW_WIDTH//50, WINDOW_WIDTH//15
 TEXT_SIZE                       = WINDOW_HEIGHT//15

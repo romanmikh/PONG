@@ -46,6 +46,9 @@ class Game:
         self.all_sprites = pygame.sprite.Group()
         pad_left  = PlayerPad(POS['padl_start'], "player1", None, self.all_sprites)
         pad_right = PlayerPad(POS['padr_start'], "player2", None, self.all_sprites)
+        # pad_right = DumbOpponentPad(POS['padr_start'], "DumbBot", None, self.all_sprites)
+        # pad_right = FollowOpponentPad(POS['padr_start'], "KeenBot", None, self.all_sprites)
+        # pad_right = SmartOpponentPad(POS['padr_start'], "SmartBot", None, self.all_sprites)
         self.ball = Ball(POS['ball_start'], (pad_left, pad_right), self.scores, self.all_sprites)
         pad_left.ball = pad_right.ball = self.ball
 
