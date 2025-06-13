@@ -2,13 +2,28 @@ from ..utils.settings import *
 from random import choice
 
 # helper functions
-def make_shape(center, width, height):
+def make_shape(center, width, height, shine_side=None):
+    """Create a rounded rectangle, add a vertical shine if shine_side given."""
     border_radius = WINDOW_WIDTH // 10
     surf = pygame.Surface((width, height), pygame.SRCALPHA)
-    rect = pygame.Rect(0, 0, width, height)
-    pygame.draw.rect(surf, FG_COLOR, rect, border_radius=border_radius)        
+
+    # base shape + dark border
+    rect = pygame.FRect(0, 0, width, height)
+    pygame.draw.rect(surf, FG_COLOR, rect, border_radius=border_radius)
     pygame.draw.rect(surf, TEXT_COLOR, rect, width=2, border_radius=border_radius)
+
+    # shine for pads
+    if shine_side in ("left", "right"):
+        shine_w = int(width * 0.15)
+        shine_h = int(height * 0.8)
+        shine_x = int(width * 0.2) if shine_side == "left" else int(width * 0.7)
+        shine_y = (height - shine_h) // 2
+
+        shine_rect = pygame.Rect(shine_x, shine_y, shine_w, shine_h)
+        pygame.draw.rect(surf, "white", shine_rect, border_radius=WINDOW_WIDTH//10)
+
     return surf, surf.get_frect(center=center)
+
 
 
 class Pad(pygame.sprite.Sprite):
@@ -18,7 +33,9 @@ class Pad(pygame.sprite.Sprite):
         self.player    = player
         self.ball      = ball
         self.direction = 0
-        self.image, self.rect = make_shape(pos, PAD_WIDTH, PAD_HEIGHT)
+        
+        shine_side = "right" if self.start_x < WINDOW_WIDTH // 2 else "left"
+        self.image, self.rect = make_shape(pos, PAD_WIDTH, PAD_HEIGHT, shine_side)
 
     def reset_position(self):
         self.rect.center = (self.start_x, self.start_y)
@@ -45,6 +62,7 @@ class PlayerPad(Pad):
         else:
             self.direction = -int(keys[pygame.K_UP]) + int(keys[pygame.K_DOWN])
 
+
 class DumbOpponentPad(Pad):
     """Moves up and down cyclically, ignores the ball"""
     def __init__(self, pos, player, ball, groups):
@@ -61,6 +79,7 @@ class DumbOpponentPad(Pad):
             self.direction = -1
         else:
             self.direction = 0
+
 
 class FollowOpponentPad(Pad):
     """Follows the ball"""
@@ -116,16 +135,21 @@ class SmartOpponentPad(Pad):
 class Ball(pygame.sprite.Sprite):
     def __init__(self, pos, pads, scores, groups):
         super().__init__(groups)
-        self.image, self.rect = make_shape(pos, BALL_SIZE, BALL_SIZE)
-        self.hit_sound = pygame.mixer.Sound(CLICK_SOUND_PATH)
-        self.miss_sound = pygame.mixer.Sound(MISS_SOUND_PATH)
-        self.miss_sound.set_volume(0.5)
-        self.direction = pygame.math.Vector2(choice([-1, 1]), choice([-1, 1]))
+
+        # keep BOTH surface and rect
+        self.base_surf, self.rect = make_shape(pos, BALL_SIZE, BALL_SIZE)
+        self.direction  = pygame.math.Vector2(choice([-1, 1]), choice([-1, 1]))
+        self.image = self.base_surf.copy()
         self.pad_left, self.pad_right = pads
         self.game_active_ever = False
-        self.game_active = False
-        self.scores = scores
+        self.game_active      = False
+        self.scores     = scores
         self.collisions = 0
+        self._update_spot()
+
+        self.hit_sound  = pygame.mixer.Sound(CLICK_SOUND_PATH)
+        self.miss_sound = pygame.mixer.Sound(MISS_SOUND_PATH)
+        self.miss_sound.set_volume(0.5)
 
     def _reset_position(self):
         self.rect.midleft = POS['ball_start']
@@ -152,6 +176,36 @@ class Ball(pygame.sprite.Sprite):
         if self.rect.bottom <= 0:
             self.rect.bottom = 1
             self.direction.y = 1
+
+    def _update_spot(self):
+        """
+        Draw a white spot on the ball that always faces the screen centre
+        Spot slides within an invisible smaller circle
+        """
+        self.image.blit(self.base_surf, (0, 0))     # wipe the image
+        spot_radius = int(BALL_SIZE * 0.1)
+        max_offset  = BALL_SIZE * 0.25
+        centre_x, centre_y = POS['ball_start']
+        ball_x, ball_y     = self.rect.center
+
+        # vector pointing to screen centre
+        vec_x, vec_y = centre_x - ball_x, centre_y - ball_y
+        dist = (vec_x**2 + vec_y**2) ** 0.5
+        if dist != 0:
+            scaled_vec_x, scaled_vec_y = vec_x / dist, vec_y / dist
+        else:
+            scaled_vec_x, scaled_vec_y = 0, 0
+
+        # scale & clamp offset proportional to distance
+        max_dist = (centre_x**2 + centre_y**2) ** 0.5
+        clamp    = min(1.0, dist / max_dist)
+        scaled_offset = clamp * max_offset
+
+        # spot centre within the ball surface
+        spot_x = BALL_SIZE // 2 + scaled_vec_x * scaled_offset
+        spot_y = BALL_SIZE // 2 + scaled_vec_y * scaled_offset
+
+        pygame.draw.circle(self.image, "white", (int(spot_x), int(spot_y)), spot_radius)
             
     def _set_direction(self):
         self._return_to_bounds()
@@ -190,6 +244,8 @@ class Ball(pygame.sprite.Sprite):
         if self.game_active:
             self._set_direction()
             self._move(dt)
+            self._update_spot()
+
 
 
 class Ray(pygame.sprite.Sprite):
