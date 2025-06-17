@@ -209,8 +209,12 @@ class Ball(pygame.sprite.Sprite):
             
     def _set_direction(self):
         self._return_to_bounds()
-        if self.rect.top <= 0 or self.rect.bottom >= WINDOW_HEIGHT:
-            self.direction.y *= -1
+        if self.rect.top <= 0:
+            self.rect.top = 0 
+            self.direction.y =  abs(self.direction.y)
+        elif self.rect.bottom >= WINDOW_HEIGHT:
+            self.rect.bottom = WINDOW_HEIGHT
+            self.direction.y = -abs(self.direction.y)
 
         if self.rect.left <= PAD_WIDTH:
             if self._pad_hit(self.pad_left.rect, self.rect):
