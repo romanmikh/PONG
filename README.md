@@ -4,7 +4,7 @@
 - Opponents: OscillatingBot, FollowBot and SmartBot
 
 <!-- ![screen capture](https://i.imgur.com/VQqQeKe.mp4) -->
-![screen capture](assets/pong.webm)
+![screen capture](https://i.imgur.com/TngQwij.mp4)
 
 ```sh
 git clone git@github.com:romanmikh/PONG.git pong && cd pong
