@@ -3,7 +3,8 @@
 - Two-player paddle controls (W/S and UP/DOWN)
 - Opponents: OscillatingBot, FollowBot and SmartBot
 
-![screen capture](https://i.imgur.com/VQqQeKe.mp4)
+<!-- ![screen capture](https://i.imgur.com/VQqQeKe.mp4) -->
+![screen capture](assets/pong.webm)
 
 ```sh
 git clone git@github.com:romanmikh/PONG.git pong && cd pong
