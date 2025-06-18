@@ -4,7 +4,7 @@
 - Opponents: OscillatingBot, FollowBot and SmartBot
 
 <div align="center">
-    ![screen capture](assets/pong.gif)
+    <img src="assets/pong.gif" width="800"/>
 </div>
 
 ```sh
