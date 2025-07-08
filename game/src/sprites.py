@@ -124,9 +124,9 @@ class SmartOpponentPad(Pad):
 
         target_y = self._predict_intercept_y()
         centre_y = self.rect.centery
-        if centre_y < target_y:
+        if centre_y < target_y and abs(centre_y - target_y) > 5:
             self.direction = 1
-        elif centre_y > target_y:
+        elif centre_y > target_y and abs(centre_y - target_y) > 5:
             self.direction = -1
         else:
             self.direction = 0
